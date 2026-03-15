@@ -15,6 +15,10 @@ RUN chmod +x gradlew && ./gradlew jar copyDeps -x test --no-daemon
 
 # Stage 3: Runtime
 FROM eclipse-temurin:17-jre-jammy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgtk2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=backend-build /app/build/libs/*.jar ./lib/
 COPY --from=backend-build /app/build/deps/ ./lib/
