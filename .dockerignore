@@ -1,0 +1,14 @@
+snap-app/node_modules
+snap-app/build
+snap-server/build
+snap-server/.gradle
+snap-server/data
+snap-python/
+docs/
+.git
+.env
+.env.local
+*.sqlite
+*.db
+.vscode
+.idea

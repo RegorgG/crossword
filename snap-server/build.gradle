@@ -1,12 +1,17 @@
 buildscript {
     repositories {
         mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'com.github.johnrengelman.shadow:shadow:7.1.2'
     }
 }
 
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 sourceCompatibility = 17
 
@@ -34,6 +39,12 @@ dependencies {
 
     testImplementation "junit:junit:4.12"
     testImplementation "org.assertj:assertj-core:3.11.0"
+}
+
+shadowJar {
+    manifest {
+        attributes 'Main-Class': 'com.kyc.snap.server.SnapServer'
+    }
 }
 
 task run(type: JavaExec) {

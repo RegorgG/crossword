@@ -1,0 +1,7 @@
+services:
+  app:
+    build: .
+    expose:
+      - "8080"
+    volumes:
+      - /data/snap2/store:/app/data/store
