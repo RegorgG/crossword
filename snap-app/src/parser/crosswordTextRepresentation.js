@@ -67,6 +67,25 @@ function buildTextRepresentation(crossword) {
     lines.push(`Grid: ${crossword.numRows} rows x ${crossword.numCols} cols`);
     lines.push("");
 
+    // Deduplicate clue numbers (ACROSS and DOWN can share the same number/position)
+    const seen = new Set();
+    const numberedSquares = [];
+    for (const entry of crossword.entries) {
+        const key = `${entry.startRow},${entry.startCol}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            numberedSquares.push(entry);
+        }
+    }
+    numberedSquares.sort((a, b) => a.clueNumber - b.clueNumber);
+
+    if (numberedSquares.length > 0) {
+        lines.push("NUMBERED SQUARES:");
+        for (const sq of numberedSquares)
+            lines.push(`(row ${sq.startRow}, col ${sq.startCol}): ${sq.clueNumber}`);
+        lines.push("");
+    }
+
     lines.push("ACROSS:");
     for (const entry of acrossEntries) {
         lines.push(`${entry.clueNumber}-Across: ${entry.numSquares} letters`);
