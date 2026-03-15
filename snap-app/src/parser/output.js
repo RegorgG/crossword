@@ -1,6 +1,6 @@
 import "./output.css";
 
-export function Output({ grid, crosswordFormulas }) {
+export function Output({ grid }) {
     if (grid === undefined) {
         return null;
     }
@@ -9,15 +9,6 @@ export function Output({ grid, crosswordFormulas }) {
     let numRows = squares.length + 1, numCols = 0;
     for (const row of squares) {
         numCols = Math.max(numCols, row.length + 1);
-    }
-
-    const formulasByPoint = {};
-    if (crosswordFormulas) {
-        for (const { row, col, formula, value, clueNumber } of crosswordFormulas) {
-            formulasByPoint[`${row}-${col}`] = { formula, value, clueNumber };
-            numRows = Math.max(numRows, row + 1);
-            numCols = Math.max(numCols, col + 1);
-        }
     }
 
     const tableRows = [];
@@ -46,17 +37,6 @@ export function Output({ grid, crosswordFormulas }) {
                     borderLeft: borderToHtml(squares[row][col -  1].rightBorder),
                 };
             }
-            const formula = formulasByPoint[`${row}-${col}`];
-            if (formula !== undefined) {
-                if (formula.formula) {
-                    cellProps['data-sheets-formula'] = formula.value;
-                } else {
-                    cellProps['data-sheets-value'] = `{"1":2,"2":${JSON.stringify(formula.value)}}`;
-                }
-                if (formula.clueNumber) {
-                    value = formula.clueNumber;
-                }
-            }
             rowCells.push(<td
                 {...cellProps}
             >
@@ -65,11 +45,9 @@ export function Output({ grid, crosswordFormulas }) {
         }
         tableRows.push(<tr key={row}>{rowCells}</tr>);
     }
-    return <google-sheets-html-origin>
-        <table className='parser-output'>
-            <tbody>{tableRows}</tbody>
-        </table>
-    </google-sheets-html-origin>;
+    return <table className='parser-output'>
+        <tbody>{tableRows}</tbody>
+    </table>;
 }
 
 function borderToHtml(border) {

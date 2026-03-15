@@ -2,14 +2,13 @@ import classNames from "classnames";
 import React from "react";
 import { get, post, postJson } from "../fetch";
 import { AdvancedSettingsPopup } from "./advancedSettingsPopup";
-import { CluesArea } from "./cluesArea";
+import { CrosswordTextRepresentation } from "./crosswordTextRepresentation";
 import { DocumentImage } from "./documentImage";
-import { ExportPopup } from "./exportPopup";
 import { Output } from "./output";
 import "./parser.css";
 
 export default class Parser extends React.Component {
-    
+
     constructor(props) {
         super(props);
         this.state = {
@@ -23,21 +22,18 @@ export default class Parser extends React.Component {
             imageDimensions: { width: 0, height: 0 },
             selectedAll: false,
             rectangle: undefined,
-            blobs: undefined,
             gridLines: undefined,
             gridPosition: undefined,
             grid: undefined,
             crossword: undefined,
-            crosswordClues: undefined,
-            crosswordCluesInferred: false,
-            crosswordFormulas: [],
+
+            editGridLinesDirection: "COL",
 
             findGridLinesMode: "EXPLICIT",
             interpolateSetting: true,
 
             loadingDocument: false,
             loadingGrid: false,
-            loadingClipboard: false,
         };
     }
 
@@ -68,7 +64,7 @@ export default class Parser extends React.Component {
     }
 
     render() {
-        const { url, popupMode, blobs, grid, crossword, crosswordClues, crosswordCluesInferred, crosswordFormulas, loadingClipboard } = this.state;
+        const { url, popupMode, grid, crossword } = this.state;
         return <div className="parser">
             <div className="input">
                 <div className="block">
@@ -87,18 +83,6 @@ export default class Parser extends React.Component {
                         type="file"
                         onChange={e => this.setFile(e.target.files[0])}
                     />
-                    <input
-                        type="button"
-                        value="Demo"
-                        onClick={() => this.setUrl("https://www.pandamagazine.com/island7/puzzles/pb7_dont_drop_the_meatballs_kdjk.pdf", () => {
-                            setTimeout(() => {
-                                if (!this.state.loadingGrid) {
-                                    this.setState({ loadingGrid: true });
-                                    this.findCrosswordFormulas(undefined, () => this.setState({ loadingGrid: false }));
-                                }
-                            }, 1000);
-                        })}
-                    />
                 </div>
                 {this.maybeRenderToolbar()}
                 {this.maybeRenderDocument()}
@@ -106,41 +90,11 @@ export default class Parser extends React.Component {
             <div className="output">
                 {this.maybeRenderParseButtons()}
                 <div className="block">
-                    <table>
-                        <tbody>
-                            <tr>
-                                <td>
-                                    <div id="html-grid">
-                                        <Output grid={grid} crosswordFormulas={crosswordFormulas} />
-                                    </div>
-                                </td>
-                                <td>
-                                    <div className={classNames({ hidden: crossword === undefined })}>
-                                        <CluesArea
-                                            crosswordClues={crosswordClues}
-                                            crosswordCluesInferred={crosswordCluesInferred}
-                                            parseCrosswordClues={(unparsedClues, callback) => this.findCrosswordFormulas(unparsedClues, callback)}
-                                        />
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <div className="block">
-                    <div
-                        className={classNames({ hidden: grid === undefined }, "big button")}
-                        onClick={this.copyGridToClipboard}
-                    >
-                        {loadingClipboard ? "Copied!" : "Copy to clipboard"}
-                    </div>
-                    <div
-                        className={classNames({ hidden: blobs === undefined && grid === undefined }, "big button")}
-                        onClick={() => this.setState({ popupMode: "EXPORT" })}
-                    >
-                        {"Export to Sheets"}
+                    <div id="html-grid">
+                        <Output grid={grid} />
                     </div>
                 </div>
+                <CrosswordTextRepresentation crossword={crossword} />
             </div>
             <AdvancedSettingsPopup
                 {...this.state}
@@ -148,16 +102,11 @@ export default class Parser extends React.Component {
                 setAdvancedSetting={(key, value) => this.setState({ [key]: value })}
                 exit={() => this.setState({ popupMode: undefined })}
             />
-            <ExportPopup
-                {...this.state}
-                isVisible={popupMode === "EXPORT"}
-                exit={() => this.setState({ popupMode: undefined })}
-            />
         </div>;
     }
 
     maybeRenderToolbar() {
-        const { document, mode, selectedAll } = this.state;
+        const { document, mode, selectedAll, editGridLinesDirection } = this.state;
         if (document === undefined) {
             return;
         }
@@ -179,6 +128,12 @@ export default class Parser extends React.Component {
                     >
                         {"Edit grid"}
                     </span>
+                    {mode === "EDIT_GRID_LINES" && <button
+                        className="inline button"
+                        onClick={() => this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW" })}
+                    >
+                        {editGridLinesDirection === "ROW" ? "Rows" : "Cols"}
+                    </button>}
                 </div>
                 <button
                     className="inline button"
@@ -234,16 +189,15 @@ export default class Parser extends React.Component {
     }
 
     maybeRenderParseButtons() {
-        const { document, blobs, grid, loadingGrid } = this.state;
+        const { document, grid, loadingGrid } = this.state;
         if (loadingGrid) {
             return <span className="loading" />;
         }
-        if (blobs !== undefined || grid !== undefined) {
+        if (grid !== undefined) {
             return <div className="block">
                 <button
                     className="button"
                     onClick={() => {
-                        this.setBlobs(undefined);
                         this.setGrid(undefined);
                     }}
                 >
@@ -260,33 +214,11 @@ export default class Parser extends React.Component {
                 onClick={() => {
                     if (!this.state.loadingGrid) {
                         this.setState({ loadingGrid: true });
-                        this.findCrosswordFormulas(undefined, () => this.setState({ loadingGrid: false }));
+                        this.findCrossword((_, __) => this.setState({ loadingGrid: false }));
                     }
                 }}
             >
                 Parse crossword
-            </div>
-            <div
-                className="big button"
-                onClick={() => {
-                    if (!this.state.loadingGrid) {
-                        this.setState({ loadingGrid: true });
-                        this.findGrid(() => this.setState({ loadingGrid: false }));
-                    }
-                }}
-            >
-                Parse grid
-            </div>
-            <div
-                className="big button"
-                onClick={() => {
-                    if (!this.state.loadingGrid) {
-                        this.setState({ loadingGrid: true });
-                        this.findBlobs(() => this.setState({ loadingGrid: false }));
-                    }
-                }}
-            >
-                Parse blobs
             </div>
             <button
                 className="advanced button"
@@ -355,21 +287,7 @@ export default class Parser extends React.Component {
         });
     }
 
-    setBlobs = blobs => {
-        const { rectangle } = this.state;
-        if (blobs) {
-            this.setGridLines({
-                horizontalLines: [0, rectangle.height],
-                verticalLines: [0, rectangle.width],
-            });
-        }
-        this.setState({ blobs });
-    }
-
     setGridLines = gridLines => {
-        if (gridLines) {
-            this.setBlobs(undefined);
-        }
         this.setGrid(undefined, undefined);
         this.setState({ gridLines });
     }
@@ -380,11 +298,7 @@ export default class Parser extends React.Component {
     }
 
     setCrossword = crossword => {
-        this.setState({ crossword, crosswordClues: undefined, crosswordFormulas: undefined });
-    }
-
-    setCrosswordFormulas = (crosswordClues, crosswordCluesInferred, crosswordFormulas) => {
-        this.setState({ crosswordClues, crosswordCluesInferred, crosswordFormulas });
+        this.setState({ crossword });
     }
 
     findGridLines = callback => {
@@ -440,62 +354,6 @@ export default class Parser extends React.Component {
                 this.setCrossword(crossword);
                 callback(grid, crossword);
             });
-        });
-    }
-
-    findCrosswordFormulas = (unparsedClues, callback) => {
-        const { document } = this.state;
-        this.findCrossword((grid, crossword) => {
-            if (unparsedClues !== undefined) {
-                postJson({
-                    path: "/words/parseCrosswordClues",
-                    body: { unparsedClues },
-                }, ({ clues }) => {
-                    postJson({
-                        path: "/words/crosswordFormulas",
-                        body: { crossword, clues },
-                    }, ({ formulas }) => {
-                        this.setCrosswordFormulas(clues, false, formulas);
-                        callback(crossword, clues);
-                    });
-                });
-            } else {
-                postJson({
-                    path: `/documents/${document.id}/clues`,
-                    body: { crossword },
-                }, ({ clues, formulas }) => {
-                    this.setCrosswordFormulas(clues, clues.sections.some(section => section.clues.length > 0), formulas);
-                    callback(grid, crossword, clues);
-                });
-            }
-        });
-    }
-
-    findBlobs = callback => {
-        const { document, page, rectangle, blobs } = this.state;
-        if (blobs !== undefined) {
-            return;
-        }
-        postJson({
-            path: `/documents/${document.id}/blobs`,
-            body: {
-                section: { page, rectangle },
-                minBlobSize: 6,
-                exact: false,
-            },
-        }, blobs => {
-            this.setBlobs(blobs);
-            callback();
-        });
-    }
-
-    copyGridToClipboard = () => {
-        const html = document.getElementById('html-grid').innerHTML;
-        const content = new Blob([html], { type: 'text/html' });
-        const data = [new window.ClipboardItem({ [content.type]: content })];
-        this.setState({ loadingClipboard: true });
-        navigator.clipboard.write(data).then(() => {
-            setTimeout(() => this.setState({ loadingClipboard: false }), 3000);
         });
     }
 }

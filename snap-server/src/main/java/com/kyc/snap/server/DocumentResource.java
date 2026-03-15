@@ -11,28 +11,16 @@ import java.util.UUID;
 
 import com.google.common.io.ByteStreams;
 import com.kyc.snap.api.DocumentService;
-import com.kyc.snap.crossword.CrosswordClues;
-import com.kyc.snap.crossword.CrosswordFormula;
-import com.kyc.snap.crossword.CrosswordParser;
-import com.kyc.snap.crossword.CrosswordSpreadsheetWrapper;
 import com.kyc.snap.document.Document;
 import com.kyc.snap.document.Document.DocumentPage;
 import com.kyc.snap.document.Document.DocumentText;
 import com.kyc.snap.document.Pdf;
 import com.kyc.snap.document.Rectangle;
 import com.kyc.snap.document.Section;
-import com.kyc.snap.google.GoogleAPIManager;
-import com.kyc.snap.google.PresentationManager;
-import com.kyc.snap.google.PresentationManager.PositionedImage;
-import com.kyc.snap.google.SpreadsheetManager;
-import com.kyc.snap.google.SpreadsheetManager.OverlayImage;
-import com.kyc.snap.google.SpreadsheetManager.SheetData;
 import com.kyc.snap.grid.Grid;
 import com.kyc.snap.grid.GridLines;
 import com.kyc.snap.grid.GridParser;
 import com.kyc.snap.grid.GridPosition;
-import com.kyc.snap.grid.GridSpreadsheetWrapper;
-import com.kyc.snap.image.ImageBlob;
 import com.kyc.snap.image.ImageUtils;
 import com.kyc.snap.store.Store;
 
@@ -43,9 +31,7 @@ import okhttp3.Response;
 
 public record DocumentResource(
         Store store,
-        GoogleAPIManager googleApi,
-        GridParser gridParser,
-        CrosswordParser crosswordParser) implements DocumentService {
+        GridParser gridParser) implements DocumentService {
 
     private static final int DOCUMENT_SIZE_LIMIT = 10_000_000;
 
@@ -124,14 +110,6 @@ public record DocumentResource(
     }
 
     @Override
-    public List<ImageBlob> findBlobs(String documentId, FindBlobsRequest request) {
-        BufferedImage image = getSectionImage(documentId, request.section()).image();
-        return ImageUtils.findBlobs(image, request.exact()).stream()
-                .filter(blob -> blob.width() >= request.minBlobSize() && blob.height() >= request.minBlobSize())
-                .toList();
-    }
-
-    @Override
     public FindGridResponse findGrid(String documentId, FindGridRequest request) {
         GridLines gridLines = request.gridLines();
         GridPosition gridPosition = gridParser.getGridPosition(gridLines);
@@ -142,58 +120,6 @@ public record DocumentResource(
         gridParser.findGridBorderStyles(grid);
         gridParser.findGridText(image.texts(), request.section().rectangle(), gridPosition, grid);
         return new FindGridResponse(gridPosition, grid);
-    }
-
-    @Override
-    public FindCrosswordCluesResponse findCrosswordClues(String documentId, FindCrosswordCluesRequest request) {
-        CrosswordClues clues = crosswordParser.parseClues(getDocument(documentId), request.crossword());
-        List<CrosswordFormula> formulas = crosswordParser.getFormulas(request.crossword(), clues);
-        return new FindCrosswordCluesResponse(clues, formulas);
-    }
-
-    @Override
-    public boolean exportSheet(String documentId, String spreadsheetId, int sheetId, ExportSheetRequest request) {
-        SectionImage image = getSectionImage(documentId, request.section());
-        SpreadsheetManager spreadsheets = googleApi.getSheet(spreadsheetId, sheetId);
-        SheetData sheetData = spreadsheets.getSheetData();
-        Marker marker = request.marker();
-        GridPosition gridPosition = request.gridLines() == null ? null : gridParser.getGridPosition(request.gridLines());
-        if (gridPosition != null && request.grid() != null) {
-            new GridSpreadsheetWrapper(spreadsheets, marker.row(), marker.col())
-                    .toSpreadsheet(gridPosition, request.grid(), sheetData);
-            if (request.crossword() != null && request.crosswordClues() != null) {
-                List<CrosswordFormula> formulas =
-                        crosswordParser.getFormulas(request.crossword(), request.crosswordClues());
-                new CrosswordSpreadsheetWrapper(spreadsheets, marker.row(), marker.col())
-                        .toSpreadsheet(request.grid(), request.crosswordClues(), formulas);
-            }
-        } else if (request.blobs() != null) {
-            spreadsheets.createNewSheetWithImages(marker.row(), marker.col(), request.blobs().stream()
-                    .map(blob -> {
-                        BufferedImage blobImage = ImageUtils.getBlobImage(image.image(), blob);
-                        BufferedImage scaledImage = ImageUtils.scale(blobImage, 1. / image.scale());
-                        int offsetX = (int) (blob.x() / image.scale());
-                        int offsetY = (int) (blob.y() / image.scale());
-                        return new OverlayImage(scaledImage, offsetX, offsetY);
-                    })
-                    .toList());
-        }
-        return true;
-    }
-
-    @Override
-    public boolean exportSlide(String documentId, String presentationId, String slideId, ExportSlideRequest request) {
-        SectionImage image = getSectionImage(documentId, request.section());
-        PresentationManager presentations = googleApi.getPresentation(presentationId, slideId);
-        if (request.blobs() != null) {
-            presentations.addImages(
-                    request.blobs().stream()
-                            .map(blob -> new PositionedImage(ImageUtils.getBlobImage(image.image, blob), blob.x(), blob.y()))
-                            .toList(),
-                    image.image.getWidth(),
-                    image.image.getHeight());
-        }
-        return true;
     }
 
     private SectionImage getSectionImage(String documentId, Section section) {

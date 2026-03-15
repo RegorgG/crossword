@@ -3,12 +3,11 @@ import "./documentImage.css";
 
 export class DocumentImage extends React.Component {
 
-    static EDIT_GRID_LINE_BUFFER = 5;
+    static EDIT_GRID_LINE_BUFFER = 15;
 
     constructor(props) {
         super(props);
         this.state = {
-            editGridLinesDirection: "COL",
             editGridLinesHoveredOver: undefined,
             editCrosswordHoveredOverGridRow: undefined,
             editCrosswordHoveredOverGridCol: undefined,
@@ -108,8 +107,8 @@ export class DocumentImage extends React.Component {
     }
 
     getCursor() {
-        const { mode } = this.props;
-        const { editGridLinesDirection, editGridLinesHoveredOver } = this.state;
+        const { mode, editGridLinesDirection } = this.props;
+        const { editGridLinesHoveredOver } = this.state;
         if (mode === "SELECT_REGION") {
             return "crosshair";
         } else if (mode === "EDIT_GRID_LINES") {
@@ -125,25 +124,26 @@ export class DocumentImage extends React.Component {
             this.canvas.removeEventListener('mousedown', this.mouseDown);
             this.canvas.removeEventListener('mousemove', this.mouseMove);
             this.canvas.removeEventListener('mouseup', this.mouseUp);
+            this.canvas.removeEventListener('touchstart', this.touchStart);
+            this.canvas.removeEventListener('touchmove', this.touchMove);
+            this.canvas.removeEventListener('touchend', this.touchEnd);
         }
         this.canvas = canvas;
         if (this.canvas) {
             this.canvas.addEventListener('mousedown', this.mouseDown);
             this.canvas.addEventListener('mousemove', this.mouseMove);
             this.canvas.addEventListener('mouseup', this.mouseUp);
+            this.canvas.addEventListener('touchstart', this.touchStart, { passive: false });
+            this.canvas.addEventListener('touchmove', this.touchMove, { passive: false });
+            this.canvas.addEventListener('touchend', this.touchEnd, { passive: false });
         }
     }
 
     mouseDown = e => {
         const { mode } = this.props;
-        const { editGridLinesDirection } = this.state;
         this.updateMouseWhileClicked(e);
         if (mode === "EDIT_GRID_LINES") {
-            if (e.button === 2 || e.ctrlKey || e.altKey || e.metaKey) {
-                this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW" });
-            } else {
-                this.updateGridLine(e);
-            }
+            this.updateGridLine(e);
         } else if (mode === "EDIT_GRID_CROSSWORD") {
             this.updateCrossword(e);
         }
@@ -160,6 +160,30 @@ export class DocumentImage extends React.Component {
     mouseUp = e => {
         this.updateMouseWhileClicked(e);
         this.mouseDownLoc = this.mouseEndLoc = undefined;
+    };
+
+    getTouchOffset(e) {
+        const touch = e.touches[0] || e.changedTouches[0];
+        const rect = this.canvas.getBoundingClientRect();
+        return { offsetX: touch.pageX - rect.left, offsetY: touch.pageY - rect.top };
+    }
+
+    touchStart = e => {
+        e.preventDefault();
+        const offset = this.getTouchOffset(e);
+        this.mouseDown({ ...offset, button: 0 });
+    };
+
+    touchMove = e => {
+        e.preventDefault();
+        const offset = this.getTouchOffset(e);
+        this.mouseMove(offset);
+    };
+
+    touchEnd = e => {
+        e.preventDefault();
+        const offset = this.getTouchOffset(e);
+        this.mouseUp(offset);
     };
 
     updateMouseWhileClicked = e => {
@@ -200,8 +224,8 @@ export class DocumentImage extends React.Component {
         if (!this.canvas) {
             return;
         }
-        const { rectangle, gridLines, setGridLines } = this.props;
-        const { editGridLinesDirection, editGridLinesHoveredOver } = this.state;
+        const { rectangle, gridLines, setGridLines, editGridLinesDirection } = this.props;
+        const { editGridLinesHoveredOver } = this.state;
         const xRatio = this.canvas.scrollWidth / this.canvas.width;
         const yRatio = this.canvas.scrollHeight / this.canvas.height;
         const copiedGridLines = {
