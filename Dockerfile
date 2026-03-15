@@ -4,7 +4,7 @@ WORKDIR /app
 COPY snap-app/package*.json ./
 RUN npm ci
 COPY snap-app/ ./
-RUN BUILD_PATH=/frontend-dist npm run build
+RUN BUILD_PATH=/frontend-dist ./node_modules/.bin/react-scripts build
 
 # Stage 2: Build Java backend with embedded frontend
 FROM gradle:8.5-jdk17 AS backend-build
