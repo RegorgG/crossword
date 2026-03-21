@@ -28,6 +28,9 @@ export default class Parser extends React.Component {
             crossword: undefined,
 
             editGridLinesDirection: "COL",
+            editGridLinesSubMode: "ADD",
+            pendingLine: undefined,
+            selectedLineForRemoval: undefined,
 
             findGridLinesMode: "EXPLICIT",
             interpolateSetting: true,
@@ -130,7 +133,7 @@ export default class Parser extends React.Component {
                     </span>
                     {mode === "EDIT_GRID_LINES" && <button
                         className="inline button"
-                        onClick={() => this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW" })}
+                        onClick={() => this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW", selectedLineForRemoval: undefined })}
                     >
                         {editGridLinesDirection === "ROW" ? "Rows" : "Cols"}
                     </button>}
@@ -142,6 +145,107 @@ export default class Parser extends React.Component {
                     {"Reset"}
                 </button>
             </div>
+            {mode === "EDIT_GRID_LINES" && this.renderEditGridLinesControls()}
+        </div>;
+    }
+
+    startNudgeInterval = (delta) => {
+        this.nudgePendingLine(delta);
+        this.nudgeTimeout = setTimeout(() => {
+            this.nudgeInterval = setInterval(() => this.nudgePendingLine(delta), 50);
+        }, 300);
+    }
+
+    stopNudgeInterval = () => {
+        clearTimeout(this.nudgeTimeout);
+        clearInterval(this.nudgeInterval);
+    }
+
+    renderEditGridLinesControls() {
+        const { editGridLinesSubMode, editGridLinesDirection, pendingLine, selectedLineForRemoval, rectangle } = this.state;
+        const isRow = editGridLinesDirection === "ROW";
+
+        return <div className="edit-grid-controls">
+            <div className="inline">
+                <span
+                    className={classNames({ selected: editGridLinesSubMode === "ADD" }, "radio")}
+                    onClick={() => this.setState({ editGridLinesSubMode: "ADD", selectedLineForRemoval: undefined })}
+                >
+                    {"Add"}
+                </span>
+                <span
+                    className={classNames({ selected: editGridLinesSubMode === "REMOVE" }, "radio")}
+                    onClick={() => this.setState({ editGridLinesSubMode: "REMOVE", pendingLine: undefined })}
+                >
+                    {"Remove"}
+                </span>
+            </div>
+
+            {editGridLinesSubMode === "ADD" && <>
+                <button
+                    className="button"
+                    disabled={!!pendingLine}
+                    onClick={() => {
+                        if (!rectangle) return;
+                        const type = isRow ? "ROW" : "COL";
+                        const value = isRow ? rectangle.height / 2 : rectangle.width / 2;
+                        this.setPendingLine({ type, value });
+                    }}
+                >
+                    {"+ New line"}
+                </button>
+                {pendingLine && <>
+                    <button
+                        className="button arrow-button"
+                        onMouseDown={() => this.startNudgeInterval(isRow ? -1 : -1)}
+                        onMouseUp={this.stopNudgeInterval}
+                        onMouseLeave={this.stopNudgeInterval}
+                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(isRow ? -1 : -1); }}
+                        onTouchEnd={this.stopNudgeInterval}
+                    >
+                        {isRow ? "\u25B2" : "\u25C4"}
+                    </button>
+                    <button
+                        className="button arrow-button"
+                        onMouseDown={() => this.startNudgeInterval(isRow ? 1 : 1)}
+                        onMouseUp={this.stopNudgeInterval}
+                        onMouseLeave={this.stopNudgeInterval}
+                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(isRow ? 1 : 1); }}
+                        onTouchEnd={this.stopNudgeInterval}
+                    >
+                        {isRow ? "\u25BC" : "\u25BA"}
+                    </button>
+                    <button className="button confirm-button" onClick={this.confirmPendingLine}>
+                        {"Confirm"}
+                    </button>
+                    <button className="button cancel-button" onClick={this.cancelPendingLine}>
+                        {"Cancel"}
+                    </button>
+                </>}
+            </>}
+
+            {editGridLinesSubMode === "REMOVE" && <>
+                <button
+                    className="button arrow-button"
+                    onClick={() => this.selectNextLineForRemoval(-1)}
+                >
+                    {"\u25C4 Prev"}
+                </button>
+                <button
+                    className="button arrow-button"
+                    onClick={() => this.selectNextLineForRemoval(1)}
+                >
+                    {"Next \u25BA"}
+                </button>
+                {selectedLineForRemoval && <>
+                    <button className="button cancel-button" onClick={this.confirmRemoveLine}>
+                        {"Remove"}
+                    </button>
+                    <button className="button" onClick={this.cancelRemoveLine}>
+                        {"Cancel"}
+                    </button>
+                </>}
+            </>}
         </div>;
     }
 
@@ -185,6 +289,8 @@ export default class Parser extends React.Component {
             setRectangle={this.setRectangle}
             setGridLines={this.setGridLines}
             setCrossword={this.setCrossword}
+            setPendingLine={this.setPendingLine}
+            selectLineForRemoval={this.selectLineForRemoval}
         />
     }
 
@@ -299,6 +405,86 @@ export default class Parser extends React.Component {
 
     setCrossword = crossword => {
         this.setState({ crossword });
+    }
+
+    setPendingLine = pendingLine => {
+        this.setState({ pendingLine });
+    }
+
+    cancelPendingLine = () => {
+        this.setState({ pendingLine: undefined });
+    }
+
+    confirmPendingLine = () => {
+        const { pendingLine, gridLines } = this.state;
+        if (!pendingLine) return;
+        const copiedGridLines = {
+            horizontalLines: [...gridLines.horizontalLines],
+            verticalLines: [...gridLines.verticalLines],
+        };
+        if (pendingLine.type === "ROW") {
+            copiedGridLines.horizontalLines.push(pendingLine.value);
+            copiedGridLines.horizontalLines.sort((a, b) => a - b);
+        } else {
+            copiedGridLines.verticalLines.push(pendingLine.value);
+            copiedGridLines.verticalLines.sort((a, b) => a - b);
+        }
+        this.setGridLines(copiedGridLines);
+        this.setState({ pendingLine: undefined });
+    }
+
+    nudgePendingLine = delta => {
+        const { pendingLine, rectangle } = this.state;
+        if (!pendingLine) return;
+        const max = pendingLine.type === "ROW" ? rectangle.height : rectangle.width;
+        const newValue = Math.max(0, Math.min(max, pendingLine.value + delta));
+        this.setState({ pendingLine: { ...pendingLine, value: newValue } });
+    }
+
+    selectLineForRemoval = line => {
+        this.setState({ selectedLineForRemoval: line });
+    }
+
+    cancelRemoveLine = () => {
+        this.setState({ selectedLineForRemoval: undefined });
+    }
+
+    confirmRemoveLine = () => {
+        const { selectedLineForRemoval, gridLines } = this.state;
+        if (!selectedLineForRemoval) return;
+        const copiedGridLines = {
+            horizontalLines: [...gridLines.horizontalLines],
+            verticalLines: [...gridLines.verticalLines],
+        };
+        const { type, value } = selectedLineForRemoval;
+        const ref = type === "ROW" ? copiedGridLines.horizontalLines : copiedGridLines.verticalLines;
+        const idx = ref.indexOf(value);
+        if (idx !== -1) {
+            ref.splice(idx, 1);
+        }
+        this.setGridLines(copiedGridLines);
+        this.setState({ selectedLineForRemoval: undefined });
+    }
+
+    selectNextLineForRemoval = direction => {
+        const { editGridLinesDirection, gridLines, selectedLineForRemoval } = this.state;
+        const lines = editGridLinesDirection === "ROW"
+            ? [...gridLines.horizontalLines].sort((a, b) => a - b)
+            : [...gridLines.verticalLines].sort((a, b) => a - b);
+        if (lines.length === 0) return;
+        const type = editGridLinesDirection;
+        if (!selectedLineForRemoval) {
+            this.setState({ selectedLineForRemoval: { type, value: lines[0] } });
+            return;
+        }
+        const currentIdx = lines.indexOf(selectedLineForRemoval.value);
+        let nextIdx;
+        if (currentIdx === -1) {
+            nextIdx = 0;
+        } else {
+            nextIdx = (currentIdx + direction + lines.length) % lines.length;
+        }
+        this.setState({ selectedLineForRemoval: { type, value: lines[nextIdx] } });
     }
 
     findGridLines = callback => {
