@@ -107,13 +107,16 @@ export class DocumentImage extends React.Component {
     }
 
     getCursor() {
-        const { mode, editGridLinesDirection } = this.props;
+        const { mode, editGridLinesDirection, removeLineMode } = this.props;
         const { editGridLinesHoveredOver } = this.state;
         if (mode === "SELECT_REGION") {
-            return "crosshair";
+            return "default";
         } else if (mode === "EDIT_GRID_LINES") {
-            if (editGridLinesHoveredOver) {
+            if (removeLineMode && editGridLinesHoveredOver) {
                 return "no-drop";
+            }
+            if (removeLineMode) {
+                return "not-allowed";
             }
             return editGridLinesDirection === "ROW" ? "ew-resize" : "ns-resize";
         }
@@ -190,20 +193,11 @@ export class DocumentImage extends React.Component {
         if (!this.canvas) {
             return;
         }
-        const { mode, setRectangle } = this.props;
         const xRatio = this.canvas.scrollWidth / this.canvas.width;
         const yRatio = this.canvas.scrollHeight / this.canvas.height;
         this.mouseEndLoc = { x: e.offsetX / xRatio, y: e.offsetY / yRatio };
         if (this.mouseDownLoc === undefined) {
             this.mouseDownLoc = this.mouseEndLoc;
-        }
-        if (mode === "SELECT_REGION") {
-            setRectangle({
-                x: Math.min(this.mouseDownLoc.x, this.mouseEndLoc.x),
-                y: Math.min(this.mouseDownLoc.y, this.mouseEndLoc.y),
-                width: Math.max(Math.abs(this.mouseDownLoc.x - this.mouseEndLoc.x), 1),
-                height: Math.max(Math.abs(this.mouseDownLoc.y - this.mouseEndLoc.y), 1),
-            });
         }
         this.updateMouse(e);
     };
@@ -224,7 +218,7 @@ export class DocumentImage extends React.Component {
         if (!this.canvas) {
             return;
         }
-        const { rectangle, gridLines, setGridLines, editGridLinesDirection } = this.props;
+        const { rectangle, gridLines, setGridLines, editGridLinesDirection, removeLineMode } = this.props;
         const { editGridLinesHoveredOver } = this.state;
         const xRatio = this.canvas.scrollWidth / this.canvas.width;
         const yRatio = this.canvas.scrollHeight / this.canvas.height;
@@ -232,11 +226,11 @@ export class DocumentImage extends React.Component {
             horizontalLines: [...gridLines.horizontalLines],
             verticalLines: [...gridLines.verticalLines],
         };
-        if (editGridLinesHoveredOver) {
+        if (removeLineMode && editGridLinesHoveredOver) {
             const { type, value } = editGridLinesHoveredOver;
             const ref = type === "ROW" ? copiedGridLines.horizontalLines : copiedGridLines.verticalLines;
             ref.splice(ref.indexOf(value), 1);
-        } else {
+        } else if (!removeLineMode) {
             if (editGridLinesDirection === "ROW") {
                 copiedGridLines.horizontalLines.push(e.offsetY / yRatio - rectangle.y);
             } else {
