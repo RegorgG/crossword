@@ -62,6 +62,44 @@
     visibility: hidden;
 }
 
+.edit-grid-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.edit-grid-controls .arrow-button {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.edit-grid-controls .confirm-button {
+    background-color: #90ee90;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.edit-grid-controls .cancel-button {
+    background-color: #ffcccb;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.edit-grid-controls .step-toggle .radio {
+    font-size: 12px;
+    padding: 3px 6px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+}
+
 @media (max-width: 768px) {
     .toolbar_options {
         float: none;
@@ -84,5 +122,21 @@
     .advanced {
         margin-left: 0;
         margin-top: 4px;
+    }
+
+    .edit-grid-controls {
+        width: 100%;
+    }
+
+    .edit-grid-controls .arrow-button {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 22px;
+    }
+
+    .edit-grid-controls .confirm-button,
+    .edit-grid-controls .cancel-button {
+        min-width: 48px;
+        min-height: 48px;
     }
 }

@@ -74,6 +74,51 @@ export class DocumentImage extends React.Component {
                     ctx.stroke();
                 }
             }
+
+            // Draw pending line (blue dashed)
+            const { pendingLine, selectedLineForRemoval } = this.props;
+            if (pendingLine) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 120, 255, 0.9)';
+                ctx.lineWidth = 5;
+                ctx.shadowColor = 'rgba(0, 120, 255, 0.5)';
+                ctx.shadowBlur = 6;
+                ctx.setLineDash([8, 4]);
+                if (pendingLine.type === "ROW") {
+                    ctx.beginPath();
+                    ctx.moveTo(rectangle.x, rectangle.y + pendingLine.value);
+                    ctx.lineTo(rectangle.x + rectangle.width, rectangle.y + pendingLine.value);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(rectangle.x + pendingLine.value, rectangle.y);
+                    ctx.lineTo(rectangle.x + pendingLine.value, rectangle.y + rectangle.height);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]);
+                ctx.restore();
+            }
+
+            // Draw selected-for-removal line (bright red with glow)
+            if (selectedLineForRemoval) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 60, 60, 0.9)';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = 'red';
+                ctx.shadowBlur = 8;
+                if (selectedLineForRemoval.type === "ROW") {
+                    ctx.beginPath();
+                    ctx.moveTo(rectangle.x, rectangle.y + selectedLineForRemoval.value);
+                    ctx.lineTo(rectangle.x + rectangle.width, rectangle.y + selectedLineForRemoval.value);
+                    ctx.stroke();
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(rectangle.x + selectedLineForRemoval.value, rectangle.y);
+                    ctx.lineTo(rectangle.x + selectedLineForRemoval.value, rectangle.y + rectangle.height);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
         }
     }
 
@@ -224,26 +269,24 @@ export class DocumentImage extends React.Component {
         if (!this.canvas) {
             return;
         }
-        const { rectangle, gridLines, setGridLines, editGridLinesDirection } = this.props;
+        const { rectangle, editGridLinesDirection, editGridLinesSubMode, pendingLine, setPendingLine, selectLineForRemoval } = this.props;
         const { editGridLinesHoveredOver } = this.state;
         const xRatio = this.canvas.scrollWidth / this.canvas.width;
         const yRatio = this.canvas.scrollHeight / this.canvas.height;
-        const copiedGridLines = {
-            horizontalLines: [...gridLines.horizontalLines],
-            verticalLines: [...gridLines.verticalLines],
-        };
-        if (editGridLinesHoveredOver) {
-            const { type, value } = editGridLinesHoveredOver;
-            const ref = type === "ROW" ? copiedGridLines.horizontalLines : copiedGridLines.verticalLines;
-            ref.splice(ref.indexOf(value), 1);
-        } else {
-            if (editGridLinesDirection === "ROW") {
-                copiedGridLines.horizontalLines.push(e.offsetY / yRatio - rectangle.y);
-            } else {
-                copiedGridLines.verticalLines.push(e.offsetX / xRatio - rectangle.x);
+
+        if (editGridLinesSubMode === "ADD") {
+            if (!pendingLine) {
+                const type = editGridLinesDirection === "ROW" ? "ROW" : "COL";
+                const value = type === "ROW"
+                    ? e.offsetY / yRatio - rectangle.y
+                    : e.offsetX / xRatio - rectangle.x;
+                setPendingLine({ type, value });
+            }
+        } else if (editGridLinesSubMode === "REMOVE") {
+            if (editGridLinesHoveredOver) {
+                selectLineForRemoval(editGridLinesHoveredOver);
             }
         }
-        setGridLines(copiedGridLines);
     };
 
     updateCrossword = e => {
