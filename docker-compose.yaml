@@ -5,5 +5,3 @@ services:
       - "8080"
     environment:
       - SERVICE_FQDN_APP_8080
-    volumes:
-      - /data/snap2/store:/app/data/store
