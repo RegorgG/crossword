@@ -28,6 +28,7 @@ export default class Parser extends React.Component {
             crossword: undefined,
 
             editGridLinesDirection: "COL",
+            removeLineMode: false,
 
             findGridLinesMode: "EXPLICIT",
             interpolateSetting: true,
@@ -106,7 +107,7 @@ export default class Parser extends React.Component {
     }
 
     maybeRenderToolbar() {
-        const { document, mode, selectedAll, editGridLinesDirection } = this.state;
+        const { document, mode, selectedAll, editGridLinesDirection, removeLineMode } = this.state;
         if (document === undefined) {
             return;
         }
@@ -124,7 +125,7 @@ export default class Parser extends React.Component {
                     </span>
                     <span
                         className={classNames({ selected: mode === "EDIT_GRID_LINES" }, "radio")}
-                        onClick={() => this.setState({ mode: this.state.mode === "EDIT_GRID_LINES" ? undefined : "EDIT_GRID_LINES" })}
+                        onClick={() => this.setState({ mode: this.state.mode === "EDIT_GRID_LINES" ? undefined : "EDIT_GRID_LINES", removeLineMode: false })}
                     >
                         {"Edit grid"}
                     </span>
@@ -134,13 +135,68 @@ export default class Parser extends React.Component {
                     >
                         {editGridLinesDirection === "ROW" ? "Rows" : "Cols"}
                     </button>}
+                    {mode === "EDIT_GRID_LINES" && <button
+                        className={classNames("inline button", { "remove-line-active": removeLineMode })}
+                        onClick={() => this.setState({ removeLineMode: !removeLineMode })}
+                    >
+                        {removeLineMode ? "Remove mode ON" : "Remove mode"}
+                    </button>}
                 </div>
+                {mode === "SELECT_REGION" && this.renderSelectionArrows()}
                 <button
                     className="inline button"
                     onClick={this.reset}
                 >
                     {"Reset"}
                 </button>
+            </div>
+        </div>;
+    }
+
+    renderSelectionArrows() {
+        const STEP_RATIO = 0.01;
+        const { imageDimensions, rectangle } = this.state;
+        const stepX = Math.max(1, Math.round(imageDimensions.width * STEP_RATIO));
+        const stepY = Math.max(1, Math.round(imageDimensions.height * STEP_RATIO));
+
+        const adjust = (side, delta) => {
+            const r = { ...rectangle };
+            if (side === "top") {
+                const newY = Math.max(0, Math.min(r.y + delta, r.y + r.height - 1));
+                r.height -= (newY - r.y);
+                r.y = newY;
+            } else if (side === "bottom") {
+                r.height = Math.max(1, Math.min(r.height + delta, imageDimensions.height - r.y));
+            } else if (side === "left") {
+                const newX = Math.max(0, Math.min(r.x + delta, r.x + r.width - 1));
+                r.width -= (newX - r.x);
+                r.x = newX;
+            } else if (side === "right") {
+                r.width = Math.max(1, Math.min(r.width + delta, imageDimensions.width - r.x));
+            }
+            this.setRectangleDirectly(r);
+        };
+
+        return <div className="selection-arrows">
+            <div className="arrow-group">
+                <span className="arrow-label">Top</span>
+                <button className="arrow-btn button" onClick={() => adjust("top", -stepY)}>&#9650;</button>
+                <button className="arrow-btn button" onClick={() => adjust("top", stepY)}>&#9660;</button>
+            </div>
+            <div className="arrow-group">
+                <span className="arrow-label">Bottom</span>
+                <button className="arrow-btn button" onClick={() => adjust("bottom", -stepY)}>&#9650;</button>
+                <button className="arrow-btn button" onClick={() => adjust("bottom", stepY)}>&#9660;</button>
+            </div>
+            <div className="arrow-group">
+                <span className="arrow-label">Left</span>
+                <button className="arrow-btn button" onClick={() => adjust("left", -stepX)}>&#9664;</button>
+                <button className="arrow-btn button" onClick={() => adjust("left", stepX)}>&#9654;</button>
+            </div>
+            <div className="arrow-group">
+                <span className="arrow-label">Right</span>
+                <button className="arrow-btn button" onClick={() => adjust("right", -stepX)}>&#9664;</button>
+                <button className="arrow-btn button" onClick={() => adjust("right", stepX)}>&#9654;</button>
             </div>
         </div>;
     }
@@ -280,6 +336,14 @@ export default class Parser extends React.Component {
     }
 
     setRectangle = rectangle => {
+        this.setState({ rectangle, selectedAll: false });
+        this.setGridLines({
+            horizontalLines: [0, rectangle.height],
+            verticalLines: [0, rectangle.width],
+        });
+    }
+
+    setRectangleDirectly = rectangle => {
         this.setState({ rectangle, selectedAll: false });
         this.setGridLines({
             horizontalLines: [0, rectangle.height],
