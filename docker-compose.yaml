@@ -2,11 +2,6 @@ services:
   app:
     build: .
     expose:
-      - "8080"
+      - "80"
     environment:
-      - SERVICE_FQDN_APP_8080
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+      - SERVICE_FQDN_APP_80
