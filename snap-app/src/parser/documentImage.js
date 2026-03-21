@@ -75,15 +75,15 @@ export class DocumentImage extends React.Component {
                 }
             }
 
-            // Draw pending line (blue dashed)
+            // Draw pending line (blue, bold, dashed)
             const { pendingLine, selectedLineForRemoval } = this.props;
             if (pendingLine) {
                 ctx.save();
-                ctx.strokeStyle = 'rgba(0, 120, 255, 0.9)';
-                ctx.lineWidth = 5;
-                ctx.shadowColor = 'rgba(0, 120, 255, 0.5)';
-                ctx.shadowBlur = 6;
-                ctx.setLineDash([8, 4]);
+                ctx.strokeStyle = 'rgba(0, 80, 255, 1)';
+                ctx.lineWidth = 8;
+                ctx.shadowColor = 'rgba(0, 80, 255, 0.7)';
+                ctx.shadowBlur = 12;
+                ctx.setLineDash([10, 5]);
                 if (pendingLine.type === "ROW") {
                     ctx.beginPath();
                     ctx.moveTo(rectangle.x, rectangle.y + pendingLine.value);
@@ -99,13 +99,13 @@ export class DocumentImage extends React.Component {
                 ctx.restore();
             }
 
-            // Draw selected-for-removal line (bright red with glow)
+            // Draw selected-for-removal line (bright yellow/orange with strong glow)
             if (selectedLineForRemoval) {
                 ctx.save();
-                ctx.strokeStyle = 'rgba(255, 60, 60, 0.9)';
-                ctx.lineWidth = 4;
-                ctx.shadowColor = 'red';
-                ctx.shadowBlur = 8;
+                ctx.strokeStyle = 'rgba(255, 200, 0, 1)';
+                ctx.lineWidth = 8;
+                ctx.shadowColor = 'rgba(255, 160, 0, 0.9)';
+                ctx.shadowBlur = 16;
                 if (selectedLineForRemoval.type === "ROW") {
                     ctx.beginPath();
                     ctx.moveTo(rectangle.x, rectangle.y + selectedLineForRemoval.value);
@@ -269,22 +269,43 @@ export class DocumentImage extends React.Component {
         if (!this.canvas) {
             return;
         }
-        const { rectangle, editGridLinesDirection, editGridLinesSubMode, pendingLine, setPendingLine, selectLineForRemoval } = this.props;
+        const { rectangle, gridLines, setGridLines, editGridLinesDirection, editGridLinesInteractionMode, editGridLinesSubMode, pendingLine, setPendingLine, selectLineForRemoval } = this.props;
         const { editGridLinesHoveredOver } = this.state;
         const xRatio = this.canvas.scrollWidth / this.canvas.width;
         const yRatio = this.canvas.scrollHeight / this.canvas.height;
 
-        if (editGridLinesSubMode === "ADD") {
-            if (!pendingLine) {
-                const type = editGridLinesDirection === "ROW" ? "ROW" : "COL";
-                const value = type === "ROW"
-                    ? e.offsetY / yRatio - rectangle.y
-                    : e.offsetX / xRatio - rectangle.x;
-                setPendingLine({ type, value });
-            }
-        } else if (editGridLinesSubMode === "REMOVE") {
+        if (editGridLinesInteractionMode === "DESKTOP") {
+            // Original direct click behavior
+            const copiedGridLines = {
+                horizontalLines: [...gridLines.horizontalLines],
+                verticalLines: [...gridLines.verticalLines],
+            };
             if (editGridLinesHoveredOver) {
-                selectLineForRemoval(editGridLinesHoveredOver);
+                const { type, value } = editGridLinesHoveredOver;
+                const ref = type === "ROW" ? copiedGridLines.horizontalLines : copiedGridLines.verticalLines;
+                ref.splice(ref.indexOf(value), 1);
+            } else {
+                if (editGridLinesDirection === "ROW") {
+                    copiedGridLines.horizontalLines.push(e.offsetY / yRatio - rectangle.y);
+                } else {
+                    copiedGridLines.verticalLines.push(e.offsetX / xRatio - rectangle.x);
+                }
+            }
+            setGridLines(copiedGridLines);
+        } else {
+            // Mobile mode: pending line / select for removal
+            if (editGridLinesSubMode === "ADD") {
+                if (!pendingLine) {
+                    const type = editGridLinesDirection === "ROW" ? "ROW" : "COL";
+                    const value = type === "ROW"
+                        ? e.offsetY / yRatio - rectangle.y
+                        : e.offsetX / xRatio - rectangle.x;
+                    setPendingLine({ type, value });
+                }
+            } else if (editGridLinesSubMode === "REMOVE") {
+                if (editGridLinesHoveredOver) {
+                    selectLineForRemoval(editGridLinesHoveredOver);
+                }
             }
         }
     };
