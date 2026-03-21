@@ -69,8 +69,8 @@ export default class Parser extends React.Component {
             <div className="input">
                 <div className="block">
                     <input
-                        className="inline"
-                        style={{ width: "300px" }}
+                        className="inline url-input"
+                        style={{ width: "300px", maxWidth: "100%", boxSizing: "border-box" }}
                         type="text"
                         placeholder="Enter URL of image/PDF/HTML..."
                         value={url}

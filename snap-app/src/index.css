@@ -61,3 +61,24 @@ img[src="./wrench.png"] {
 .output {
     width: calc(55% - 50px);
 }
+
+@media (max-width: 768px) {
+    body {
+        padding: 8px;
+    }
+
+    .title {
+        font-size: 28px;
+        margin-bottom: 16px;
+    }
+
+    .input, .output {
+        float: none;
+        width: 100%;
+        margin-right: 0;
+    }
+
+    .output {
+        clear: both;
+    }
+}
