@@ -154,7 +154,7 @@ export default class Parser extends React.Component {
     }
 
     renderSelectionArrows() {
-        const STEP_RATIO = 0.02;
+        const STEP_RATIO = 0.01;
         const { imageDimensions, rectangle } = this.state;
         const stepX = Math.max(1, Math.round(imageDimensions.width * STEP_RATIO));
         const stepY = Math.max(1, Math.round(imageDimensions.height * STEP_RATIO));
