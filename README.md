@@ -1,60 +1,57 @@
-Snap
-====
+Crossword Grid Editor
+=====================
 
-Snap provides advanced tooling for puzzle hunts. Try Snap at [util.in](https://util.in).
+A browser-based tool for manually drawing crossword grid structures and generating a textual representation of the crossword layout. No backend required -- everything runs client-side.
 
 Features
 --------
 
-### [Crossword tool](https://util.in/parser)
+- **Interactive 13x13 grid** -- click borders to toggle them between thin (no word boundary) and thick (word boundary)
+- **Live clue numbering** -- numbered squares update in real time as you edit borders
+- **Crossword interpretation** -- generates a full textual description including grid dimensions, numbered squares, across/down entries with letter counts, and intersection details
+- **Copy to clipboard** -- one-click copy of the generated text
 
-Given a crossword puzzle page, Snap automatically detects the crossword grid and clues.
+Usage
+-----
 
-![Parsing a crossword](docs/parse_crossword.gif)
+Visit the deployed version, or run locally:
 
-Snap then hooks up your Google Sheet so that filling in a clue answer automatically fills in the grid and letters in orthogonal clues.
+```
+cd frontend
+python3 -m http.server 8000
+```
 
-![Exported crossword](docs/crossword.gif)
+Then open http://localhost:8000.
 
-### [Parse grids](https://util.in/parser)
+### How it works
 
-Snap can handle many types of images. For example, here is an image of a grid with borders:
+1. Click inner borders on the grid to mark word boundaries (thick lines)
+2. Clue numbers appear automatically based on the standard crossword numbering rules
+3. Click **Interpret as Crossword** to generate the full text representation
+4. Click **Copy to clipboard** to copy the output
 
-![Bordered grid](docs/bordered-grid.gif)
+### Numbering rules
 
-### [Parse blobs](https://util.in/parser)
+A cell gets a number if it starts an **Across** entry (left border thick, right border thin) or a **Down** entry (top border thick, bottom border thin). Words must be at least 2 cells long.
 
-Easily import jigsaw pieces or other moving components into Google Sheets.
+Deployment
+----------
 
-![Blobs](docs/blobs.gif)
+The app is deployed via [Coolify](https://coolify.io) using Docker Compose. The setup is minimal: nginx serving static files.
 
-### [Heavy duty anagram solver](https://util.in/solver)
+```
+docker compose up --build
+```
 
-Snap has a powerful solver engine with a deep understanding of English. This allows it to solve for phrases and even sentences, which traditional tools cannot do.
+Project Structure
+-----------------
 
-![Anagram](docs/anagram.gif)
-
-### [Wordsearch solver](https://util.in/wordsearch)
-
-Find words in a grid, with a nice visual UI and without needing a word bank. Both straight words and boggle mode are supported.
-
-![Word search](docs/wordsearch.gif)
-
-
-Instructions
-------------
-
-Instructions for the crossword tool [here](../../wiki/Crossword-tool-tutorial).
-
-Instructions for parsing other grids are similar to that of the crossword tool; instead of clicking "Parse crossword", choose "Parse grid".
-
-Instructions for the anagram solver [here](../../wiki/Heavy-duty-anagram-solver).
-
-
-Development
------------
-
-In the [snap-app](snap-app) directory, run `yarn install`, then `yarn build` to build the frontend asset files. (You can also develop on the frontend only with `yarn start`.)
-
-Follow the instructions [here](snap-server/README.md) to setup and start the server.
-
+```
+frontend/
+  index.html          -- main page
+  grid-editor.js      -- grid state, rendering, crossword interpretation
+  grid-editor.css     -- grid and UI styles
+Dockerfile            -- nginx:alpine serving frontend/
+docker-compose.yaml   -- Coolify-compatible deployment config
+docs/                 -- legacy screenshots (from previous image-parsing version)
+```
