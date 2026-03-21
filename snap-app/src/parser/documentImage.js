@@ -78,8 +78,11 @@ export class DocumentImage extends React.Component {
             // Draw pending line (blue dashed)
             const { pendingLine, selectedLineForRemoval } = this.props;
             if (pendingLine) {
-                ctx.strokeStyle = 'rgba(0, 120, 255, 0.8)';
-                ctx.lineWidth = 3;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 120, 255, 0.9)';
+                ctx.lineWidth = 5;
+                ctx.shadowColor = 'rgba(0, 120, 255, 0.5)';
+                ctx.shadowBlur = 6;
                 ctx.setLineDash([8, 4]);
                 if (pendingLine.type === "ROW") {
                     ctx.beginPath();
@@ -93,6 +96,7 @@ export class DocumentImage extends React.Component {
                     ctx.stroke();
                 }
                 ctx.setLineDash([]);
+                ctx.restore();
             }
 
             // Draw selected-for-removal line (bright red with glow)

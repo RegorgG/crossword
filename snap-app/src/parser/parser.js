@@ -29,6 +29,7 @@ export default class Parser extends React.Component {
 
             editGridLinesDirection: "COL",
             editGridLinesSubMode: "ADD",
+            nudgeStep: 1,
             pendingLine: undefined,
             selectedLineForRemoval: undefined,
 
@@ -149,10 +150,11 @@ export default class Parser extends React.Component {
         </div>;
     }
 
-    startNudgeInterval = (delta) => {
-        this.nudgePendingLine(delta);
+    startNudgeInterval = (direction) => {
+        const step = direction * this.state.nudgeStep;
+        this.nudgePendingLine(step);
         this.nudgeTimeout = setTimeout(() => {
-            this.nudgeInterval = setInterval(() => this.nudgePendingLine(delta), 50);
+            this.nudgeInterval = setInterval(() => this.nudgePendingLine(step), 50);
         }, 300);
     }
 
@@ -162,7 +164,7 @@ export default class Parser extends React.Component {
     }
 
     renderEditGridLinesControls() {
-        const { editGridLinesSubMode, editGridLinesDirection, pendingLine, selectedLineForRemoval, rectangle } = this.state;
+        const { editGridLinesSubMode, editGridLinesDirection, nudgeStep, pendingLine, selectedLineForRemoval, rectangle } = this.state;
         const isRow = editGridLinesDirection === "ROW";
 
         return <div className="edit-grid-controls">
@@ -195,22 +197,42 @@ export default class Parser extends React.Component {
                     {"+ New line"}
                 </button>
                 {pendingLine && <>
+                    <div className="inline step-toggle">
+                        <span
+                            className={classNames({ selected: nudgeStep === 1 }, "radio")}
+                            onClick={() => this.setState({ nudgeStep: 1 })}
+                        >
+                            {"1px"}
+                        </span>
+                        <span
+                            className={classNames({ selected: nudgeStep === 5 }, "radio")}
+                            onClick={() => this.setState({ nudgeStep: 5 })}
+                        >
+                            {"5px"}
+                        </span>
+                        <span
+                            className={classNames({ selected: nudgeStep === 20 }, "radio")}
+                            onClick={() => this.setState({ nudgeStep: 20 })}
+                        >
+                            {"20px"}
+                        </span>
+                    </div>
                     <button
                         className="button arrow-button"
-                        onMouseDown={() => this.startNudgeInterval(isRow ? -1 : -1)}
+                        onMouseDown={() => this.startNudgeInterval(-1)}
                         onMouseUp={this.stopNudgeInterval}
                         onMouseLeave={this.stopNudgeInterval}
-                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(isRow ? -1 : -1); }}
+                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(-1); }}
                         onTouchEnd={this.stopNudgeInterval}
                     >
                         {isRow ? "\u25B2" : "\u25C4"}
                     </button>
                     <button
                         className="button arrow-button"
-                        onMouseDown={() => this.startNudgeInterval(isRow ? 1 : 1)}
+                        onMouseDown={() => this.startNudgeInterval(1)}
                         onMouseUp={this.stopNudgeInterval}
                         onMouseLeave={this.stopNudgeInterval}
-                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(isRow ? 1 : 1); }}
+                        onTouchStart={(e) => { e.preventDefault(); this.startNudgeInterval(1); }}
                         onTouchEnd={this.stopNudgeInterval}
                     >
                         {isRow ? "\u25BC" : "\u25BA"}
