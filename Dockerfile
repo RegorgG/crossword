@@ -1,4 +1,5 @@
-FROM caddy:2-alpine
-COPY frontend/Caddyfile /etc/caddy/Caddyfile
-COPY frontend/ /srv/
+FROM nginx:alpine
+RUN rm /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/ /usr/share/nginx/html/
 EXPOSE 8080
