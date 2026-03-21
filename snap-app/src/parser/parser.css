@@ -61,3 +61,28 @@
 .hidden {
     visibility: hidden;
 }
+
+@media (max-width: 768px) {
+    .toolbar_options {
+        float: none;
+        margin-right: 0;
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .big {
+        font-size: 20px;
+        padding: 12px;
+        margin: 8px 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .advanced {
+        margin-left: 0;
+        margin-top: 4px;
+    }
+}
