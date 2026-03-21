@@ -2,6 +2,6 @@ services:
   app:
     build: .
     expose:
-      - "8080"
+      - "80"
     environment:
-      - SERVICE_FQDN_APP_8080
+      - SERVICE_FQDN_APP_80
