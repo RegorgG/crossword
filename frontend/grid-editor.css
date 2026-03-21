@@ -1,0 +1,231 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 16px;
+    background: #fafafa;
+    color: #222;
+}
+
+.header {
+    margin-bottom: 16px;
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.header a {
+    color: #555;
+    font-size: 14px;
+}
+
+/* --- 27x27 CSS Grid --- */
+
+:root {
+    --cell-size: clamp(18px, calc((95vw - 14 * 12px) / 13), 36px);
+    --border-size: 12px;
+}
+
+.grid-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(13, var(--border-size) var(--cell-size)) var(--border-size);
+    grid-template-rows: repeat(13, var(--border-size) var(--cell-size)) var(--border-size);
+    /* 13 pairs + 1 trailing = 27 tracks each axis */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Cells */
+.grid-cell {
+    background: #fff;
+    position: relative;
+}
+
+.grid-cell .clue-number {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: clamp(8px, calc(var(--cell-size) * 0.3), 12px);
+    line-height: 1;
+    color: #999;
+    pointer-events: none;
+}
+
+/* Corners — always dark */
+.grid-corner {
+    background: #222;
+}
+
+/* Borders — shared base */
+.grid-border {
+    position: relative;
+    cursor: pointer;
+    background: transparent;
+}
+
+/* Outer-edge borders: always dark, not interactive */
+.grid-border.outer {
+    cursor: default;
+}
+
+/* The visual line inside a border element */
+.grid-border::after {
+    content: "";
+    position: absolute;
+    background: #ccc;
+    transition: background 0.1s;
+}
+
+.grid-border.horiz::after {
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.grid-border.vert::after {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    transform: translateX(-50%);
+}
+
+/* Thick (active) border */
+.grid-border.thick::after {
+    background: #222;
+}
+
+.grid-border.horiz.thick::after {
+    height: 3px;
+}
+
+.grid-border.vert.thick::after {
+    width: 3px;
+}
+
+/* Outer borders are always thick and dark */
+.grid-border.outer::after {
+    background: #222;
+}
+
+.grid-border.horiz.outer::after {
+    height: 3px;
+}
+
+.grid-border.vert.outer::after {
+    width: 3px;
+}
+
+/* Hover effect for inner borders */
+.grid-border:not(.outer):hover::after {
+    background: #888;
+}
+
+.grid-border.horiz:not(.outer):hover::after {
+    height: 3px;
+}
+
+.grid-border.vert:not(.outer):hover::after {
+    width: 3px;
+}
+
+/* --- Buttons --- */
+
+.actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.actions button {
+    font-size: 16px;
+    padding: 10px 24px;
+    min-height: 48px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.actions button:hover {
+    background: #f0f0f0;
+}
+
+.actions button.primary {
+    background: #222;
+    color: #fff;
+    border-color: #222;
+}
+
+.actions button.primary:hover {
+    background: #444;
+}
+
+/* --- Output --- */
+
+.output-section {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.output-section pre {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: "SF Mono", "Consolas", "Liberation Mono", monospace;
+    margin-bottom: 10px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.output-section .copy-btn {
+    font-size: 14px;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.output-section .copy-btn:hover {
+    background: #f0f0f0;
+}
+
+/* --- Mobile --- */
+
+@media (max-width: 600px) {
+    body {
+        padding: 10px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    .actions button {
+        width: 100%;
+    }
+}
