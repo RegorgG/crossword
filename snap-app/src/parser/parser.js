@@ -28,6 +28,7 @@ export default class Parser extends React.Component {
             crossword: undefined,
 
             editGridLinesDirection: "COL",
+            editGridLinesInteractionMode: "DESKTOP",
             editGridLinesSubMode: "ADD",
             nudgeStep: 1,
             pendingLine: undefined,
@@ -132,12 +133,24 @@ export default class Parser extends React.Component {
                     >
                         {"Edit grid"}
                     </span>
-                    {mode === "EDIT_GRID_LINES" && <button
-                        className="inline button"
-                        onClick={() => this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW", selectedLineForRemoval: undefined })}
-                    >
-                        {editGridLinesDirection === "ROW" ? "Rows" : "Cols"}
-                    </button>}
+                    {mode === "EDIT_GRID_LINES" && <>
+                        <button
+                            className="inline button"
+                            onClick={() => this.setState({ editGridLinesDirection: editGridLinesDirection === "ROW" ? "COL" : "ROW", selectedLineForRemoval: undefined })}
+                        >
+                            {editGridLinesDirection === "ROW" ? "Rows" : "Cols"}
+                        </button>
+                        <button
+                            className="inline button"
+                            onClick={() => this.setState({
+                                editGridLinesInteractionMode: this.state.editGridLinesInteractionMode === "DESKTOP" ? "MOBILE" : "DESKTOP",
+                                pendingLine: undefined,
+                                selectedLineForRemoval: undefined,
+                            })}
+                        >
+                            {this.state.editGridLinesInteractionMode === "DESKTOP" ? "Desktop" : "Mobile"}
+                        </button>
+                    </>}
                 </div>
                 <button
                     className="inline button"
@@ -146,7 +159,7 @@ export default class Parser extends React.Component {
                     {"Reset"}
                 </button>
             </div>
-            {mode === "EDIT_GRID_LINES" && this.renderEditGridLinesControls()}
+            {mode === "EDIT_GRID_LINES" && this.state.editGridLinesInteractionMode === "MOBILE" && this.renderEditGridLinesControls()}
         </div>;
     }
 
