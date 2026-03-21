@@ -96,6 +96,30 @@ function toggleBorder(type, r, c) {
     if (el) {
         el.classList.toggle("thick");
     }
+    updateClueNumbers();
+}
+
+// ─── Live Clue Numbering ────────────────────────────────────────
+
+function computeClueNumbers() {
+    let clueNumber = 0;
+    const cellNumbers = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+            const startsAcross = vertBorders[r][c] && c + 1 < COLS && !vertBorders[r][c + 1];
+            const startsDown = horizBorders[r][c] && r + 1 < ROWS && !horizBorders[r + 1][c];
+            if (startsAcross || startsDown) {
+                clueNumber++;
+                cellNumbers[r][c] = clueNumber;
+            }
+        }
+    }
+    return cellNumbers;
+}
+
+function updateClueNumbers() {
+    renderClueNumbers(computeClueNumbers());
 }
 
 // ─── Crossword Interpretation ───────────────────────────────────
@@ -103,75 +127,34 @@ function toggleBorder(type, r, c) {
 function interpretCrossword() {
     const entries = [];
     let clueNumber = 0;
-    // cellNumbers[r][c] = assigned clue number or 0
-    const cellNumbers = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-            let startsAcross = false;
-            let startsDown = false;
-
-            // Starts ACROSS: left border thick AND right border thin AND word >= 2
-            if (vertBorders[r][c] && c + 1 < COLS && !vertBorders[r][c + 1]) {
-                startsAcross = true;
-            }
-
-            // Starts DOWN: top border thick AND bottom border thin AND word >= 2
-            if (horizBorders[r][c] && r + 1 < ROWS && !horizBorders[r + 1][c]) {
-                startsDown = true;
-            }
+            const startsAcross = vertBorders[r][c] && c + 1 < COLS && !vertBorders[r][c + 1];
+            const startsDown = horizBorders[r][c] && r + 1 < ROWS && !horizBorders[r + 1][c];
 
             if (startsAcross || startsDown) {
                 clueNumber++;
-                cellNumbers[r][c] = clueNumber;
 
                 if (startsAcross) {
-                    // Count length
                     let len = 1;
                     let cc = c + 1;
-                    while (cc < COLS && !vertBorders[r][cc]) {
-                        len++;
-                        cc++;
-                    }
-                    entries.push({
-                        clueNumber,
-                        direction: "ACROSS",
-                        startRow: r,
-                        startCol: c,
-                        numSquares: len,
-                    });
+                    while (cc < COLS && !vertBorders[r][cc]) { len++; cc++; }
+                    entries.push({ clueNumber, direction: "ACROSS", startRow: r, startCol: c, numSquares: len });
                 }
 
                 if (startsDown) {
                     let len = 1;
                     let rr = r + 1;
-                    while (rr < ROWS && !horizBorders[rr][c]) {
-                        len++;
-                        rr++;
-                    }
-                    entries.push({
-                        clueNumber,
-                        direction: "DOWN",
-                        startRow: r,
-                        startCol: c,
-                        numSquares: len,
-                    });
+                    while (rr < ROWS && !horizBorders[rr][c]) { len++; rr++; }
+                    entries.push({ clueNumber, direction: "DOWN", startRow: r, startCol: c, numSquares: len });
                 }
             }
         }
     }
 
-    const crossword = { numRows: ROWS, numCols: COLS, entries };
-
-    // Render clue numbers in grid cells
-    renderClueNumbers(cellNumbers);
-
-    // Build text representation
-    const text = buildTextRepresentation(crossword);
-
-    // Show output
-    const outputPre = document.getElementById("output-text");
-    outputPre.textContent = text;
+    const text = buildTextRepresentation({ numRows: ROWS, numCols: COLS, entries });
+    document.getElementById("output-text").textContent = text;
     document.getElementById("output-section").style.display = "block";
 }
 
@@ -192,10 +175,6 @@ function renderClueNumbers(cellNumbers) {
             cell.appendChild(span);
         }
     });
-}
-
-function clearClueNumbers() {
-    document.querySelectorAll(".grid-cell .clue-number").forEach((el) => el.remove());
 }
 
 // ─── Text Representation (matches snap-app format) ──────────────
@@ -300,10 +279,10 @@ function buildTextRepresentation(crossword) {
 function resetGrid() {
     horizBorders = makeHorizBorders();
     vertBorders = makeVertBorders();
-    clearClueNumbers();
     document.getElementById("output-section").style.display = "none";
     document.getElementById("output-text").textContent = "";
     buildGrid();
+    updateClueNumbers();
 }
 
 function copyToClipboard() {
@@ -321,4 +300,5 @@ function copyToClipboard() {
 
 document.addEventListener("DOMContentLoaded", () => {
     buildGrid();
+    updateClueNumbers();
 });
